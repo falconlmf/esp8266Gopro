@@ -15,6 +15,13 @@
 #include <ESP8266HTTPClient.h>
 #include <ESP8266httpUpdate.h>
 
+#define F_DEBUG 1
+#define debugBegin(x) (F_DEBUG ? Serial.begin(x) : Serial.end())
+#define debug(x) (F_DEBUG ? Serial.print(x) : Serial.print(""))
+#define debugln(x) (F_DEBUG ? Serial.println(x) : Serial.print(""))
+#define debugm(x) (F_DEBUG ? Serial.print(String(millis()) + " " + String(x)) : Serial.print(""))
+#define debugmln(x) (F_DEBUG ? Serial.println(String(millis()) + " " + String(x)) : Serial.print(""))
+
 //AP VARS
 int DSState = 0; // 0 = DEEPSLEEP ohne WIFI  -  1 = DEEPSLEEP mit WIFI
 const byte DNS_PORT = 53;
@@ -45,11 +52,14 @@ char ssidsav[32] = "";
 char passwordsav[32] = "";
 
 //BUTTONS
-int BTN_1 = 4;  // REMOTESETUP
-int BTN_2 = 14; // TRIGGER
+int BTN_1 = D0; // REMOTESETUP
+int BTN_2 = D1; // TRIGGER
 
 void setup()
 {
+    debugBegin(115200);
+    debugln();
+    debugln("start");
     //DISABLE ACCESSPOINT AT START
     WiFi.disconnect();
     WiFi.mode(WIFI_STA);
@@ -66,15 +76,14 @@ void setup()
     }
     else
     {             // BUTTON PRESSED - WAKE UP !!!!!
-                  // // Serial.begin(115200);
         loadDS(); //load EEPROM STORED DSState
 
-        // // Serial.print("DSState = ");
-        // // Serial.println(DSState);
+        debug("DSState = ");
+        debugln(DSState);
 
         if (DSState == 0)
         {
-            // // Serial.println("REBOOT WIFI ON!");
+            debugln("REBOOT WIFI ON!");
             DSState = 1;
             saveDS();
             wifisleep();
@@ -86,13 +95,13 @@ void setup()
             if (digitalRead(BTN_2) == LOW)
             {
 
-                // // Serial.println("BOOTED WIFI ON!");
+                debugln("BOOTED WIFI ON!");
 
                 delay(100);
-                // // Serial.println("Connecting CAM!");
+                debugln("Connecting CAM!");
                 DSState = 0;
                 saveDS();
-                // // Serial.println(ssidsav);
+                debugln(ssidsav);
                 connectWifi(); //Connect to Camera if Trigger is pressed for the first time
             }                  //BTN 2
         }                      // IF DSSTATE 1
@@ -101,6 +110,7 @@ void setup()
 
 void loop()
 {
+    debug('.');
     ESP.wdtDisable();
     checkifremotesetup();
     // Setup? falls ja dann Captive Protal

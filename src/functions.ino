@@ -1,9 +1,9 @@
 void loopstodeepsleep(int loops)
 {
-  //  //  // Serial.print ("LOOPING-MAIN-LOOP ");
-  // //  // Serial.print (nrloops);
-  // //  // Serial.print (" of ");
-  // //  // Serial.println (loops);
+  debug("LOOPING-MAIN-LOOP ");
+  debug(nrloops);
+  debug(" of ");
+  debugln(loops);
 
   nrloops++;
   if (digitalRead(BTN_2) == LOW && pushstate == false)
@@ -14,8 +14,10 @@ void loopstodeepsleep(int loops)
 
   if (digitalRead(BTN_1) == LOW && pushstate == false)
   { // REMOTE SETUP
-
-    remotesetup();
+    if (!REMOTESETUP)
+    {
+      remotesetup();
+    }
   }
 
   delay(100);
@@ -87,18 +89,18 @@ void wifisleep()
 void remoteupdate()
 {
 
-  //  // Serial.println("RemoteUpdate");
+  debugln("RemoteUpdate");
   t_httpUpdate_return ret = ESPhttpUpdate.update("p1337.synology.me", 80, "/remoteupdate/update.php", "160710");
   switch (ret)
   {
   case HTTP_UPDATE_FAILED:
-    //  // Serial.println("[update] Update failed.");
+    debugln("[update] Update failed.");
     break;
   case HTTP_UPDATE_NO_UPDATES:
-    //  // Serial.println("[update] Update no Update.");
+    debugln("[update] Update no Update.");
     break;
   case HTTP_UPDATE_OK:
-    //  // Serial.println("[update] Update ok."); // may not called we reboot the ESP
+    debugln("[update] Update ok."); // may not called we reboot the ESP
     break;
   }
 }
@@ -143,9 +145,9 @@ void loadCredentials()
     ssidsav[0] = 0;
     passwordsav[0] = 0;
   }
-  // Serial.println("Recovered credentials:");
-  // Serial.println(ssidsav);
-  // Serial.println(strlen(passwordsav)>0?"********":"<no password>");
+  debugln("Recovered credentials:");
+  debugln(ssidsav);
+  debugln(strlen(passwordsav) > 0 ? "********" : "<no password>");
 }
 
 /** Store WLAN credentials to EEPROM */
@@ -184,38 +186,40 @@ void loadDS()
   {
     DSState = 0;
   }
-  // // Serial.println("");
-  // // Serial.println("DSState: ");
-  // Serial.println(DSState);
+  debugln("");
+  debugln("DSState: ");
+  debugln(DSState);
 }
 
 void remotesetup()
 { // STARTING ACCESS POINT FOR REMOTE SETUP
   REMOTESETUP = true;
-  dnsServer.start(DNS_PORT, "*", apIP);
-  // //  // Serial.println("Setting up AP: ");
-  // //  // Serial.println(ssid);
+  debugln("Setting up AP: ");
+  debugln(ssid);
   WiFi.mode(WIFI_AP);
+  WiFi.enableAP(REMOTESETUP);
   WiFi.softAP(ssid);
-  //  // Serial.println("RemoteSetup started");
+  delay(600);
+  debugln("RemoteSetup started");
+  dnsServer.start(DNS_PORT, "*", apIP);
   server.begin();
 } // STARTING ACCESS POINT FOR REMOTE SETUP
 
 void trigger()
 { // TRIGGER START
 
-  //  // Serial.println("Trigger set");
+  debugln("Trigger set");
   nrloops = 0;
-  //  // Serial.println("Reset nrloops");
+  debugln("Reset nrloops");
 
   WiFiClient client;
   const int httpPort = 80;
-  //  // Serial.println(host);
+  debugln(host);
   pushstate = false;
   if (!client.connect(host, httpPort))
   {
     //delay(100);                              //   ----RSDELAY
-    //  // Serial.println("GoPro failed - Status");
+    debugln("GoPro failed - Status");
     remoteupdate(); //-------------------------------------------------------------------------------REMOTEUPDATE!
 
     return;
@@ -236,11 +240,11 @@ void trigger()
   }
 
   String searchtext = response.substring(156);
-  // //  // Serial.println(searchtext);
+  debugln(searchtext);
   //"2": RECORING STATUS ---------------------------START-----------------------------Recording STATUS
   int batindex = searchtext.indexOf(':', 42);
   String bat = searchtext.substring(batindex + 1, batindex + 2);
-  ////  // Serial.println(bat);
+  //debugln(bat);
   if (bat == "0")
   {
     camstates = 1;
@@ -256,10 +260,10 @@ void trigger()
     // delay(500);  // ----RSDELAYMAYBE
     if (!client.connect(host, httpPort))
     {
-      //      //  // Serial.println("connection failed - BEEPON");
+      debugln("connection failed - BEEPON");
       return;
     }
-    //  //  // Serial.println("Töne werden eingeschaltet");
+    debugln("Töne werden eingeschaltet");
     url = "/gp/gpControl/setting/56/0";
     client.print(String("GET ") + url + " HTTP/1.1\r\n" +
                  "Host: " + host + "\r\n" +
@@ -270,10 +274,10 @@ void trigger()
   if (!client.connect(host, httpPort))
   {
 
-    //  //  // Serial.println("connection failed - TRIGGER");
+    debugln("connection failed - TRIGGER");
     return;
   }
-  //   //  // Serial.println("TRIGGER!");
+  debugln("TRIGGER!");
   url = "/gp/gpControl/command/shutter?p=";
   url += camstates;
   client.print(String("GET ") + url + " HTTP/1.1\r\n" +
@@ -286,9 +290,9 @@ void trigger()
     delay(3000); //----RSDELAYMAYBE
     if (!client.connect(host, httpPort))
     {
-      // //  // Serial.println("connection failed - BEEP OF");
+      debugln("connection failed - BEEP OF");
     }
-    // //  // Serial.println("Töne werden ausgeschaltet");
+    debugln("Töne werden ausgeschaltet");
     url = "/gp/gpControl/setting/56/2";
     client.print(String("GET ") + url + " HTTP/1.1\r\n" +
                  "Host: " + host + "\r\n" +
@@ -311,15 +315,15 @@ void connectWifi()
 
   WiFi.mode(WIFI_STA);
 
-  //    // Serial.begin(115200);
+  debugBegin(115200);
   while (WiFi.status() != WL_CONNECTED)
   {
 
-    //  //  // Serial.println("WHILE-SCHLEIFE");
-    //  // Serial.print("Wifi-Status ");
-    //  // Serial.println(WiFi.status());
+    debugln("WHILE-SCHLEIFE");
+    debug("Wifi-Status ");
+    debugln(WiFi.status());
     delay(200);
-    // Serial.print(".");
+    debug(".");
     counter++;
     if (counter >= 120)
     {
@@ -328,7 +332,7 @@ void connectWifi()
     }
   }
   int connRes = WiFi.waitForConnectResult();
-  //  // Serial.println(WiFi.localIP());
+  debugln(WiFi.localIP());
 }
 
 void checkifremotesetup()
